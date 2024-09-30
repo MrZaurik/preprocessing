@@ -1,7 +1,7 @@
 import pandas as pd
 import bibtexparser
 
-def bib_to_df(file_path):
+def bib_to_df(file_path, fields=None):
     
     try:
         with open(file_path, 'r', encoding='utf-8') as bibfile:
@@ -12,6 +12,8 @@ def bib_to_df(file_path):
         entries_data = []
 
         for entry in library.entries:
+            if fields is not None:
+                entry = {k: entry.get(k, '') for k in fields}
             entry_data = {}
             for i in entry:
                 entry_data[i] = entry.get(i, '')
