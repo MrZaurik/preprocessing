@@ -2,7 +2,36 @@ import pandas as pd
 import bibtexparser
 import re
 
+"""
+    Convierte un archivo BibTeX a un DataFrame de pandas.
+
+    Esta función lee un archivo BibTeX, extrae sus entradas y las convierte
+    en un DataFrame, organizando las columnas según un mapeo predefinido,
+    extrae el país de afiliación de las entradas siempre que esté disponible y
+    cambia el formato de los autores de "AND" a ";"
+
+    Parámetros:
+    ----------
+    file_path : str
+        Ruta del archivo BibTeX a leer.
+
+    Retorna:
+    -------
+    pd.DataFrame
+        Un DataFrame de pandas que contiene las entradas del archivo BibTeX.
+        Si ocurre un error durante la lectura o el análisis, retorna None.
+    
+    Excepciones:
+    ------------
+    - FileNotFoundError: Si el archivo no se encuentra en la ruta especificada.
+    - UnicodeDecodeError: Si hay un error de codificación al intentar leer el archivo.
+    - bibtexparser.BibTexParserError: Si hay un error al analizar el archivo BibTeX.
+    - KeyError: Si se intenta acceder a una clave no existente en un diccionario.
+    - ValueError: Si se encuentra un valor no válido.
+    - TypeError: Si se pasa un argumento de tipo inapropiado.
+"""
 def bib_to_df(file_path):
+     
     column_mapping = {
         'source': 'SRC',
         'document_type': 'DT',
@@ -38,19 +67,19 @@ def bib_to_df(file_path):
         'sponsors': 'SP',
         'page_count': 'PG',
         'chemicals_cas': 'CHEMICAL_CAS'
-        }
+    }
     
+    # Solamente para poder previsualizar las columnas en un orden más específico
     column_order = [
     'AU', 'DE', 'ID', 'C1',
     'CR', 'PG', 'AB', 'SN',
     'TI', 'ART NUMBER', 'SP', 'CODEN',
     'PU', 'FUNDING', 'ENTRY_TYPE', 'PMID',
-    'CHEMICAL_CAS', 'USERS', 'JNL', 'BN',
+    'CHEMICAL_CAS', 'USERS', 'NUM', 'BN',
     'VL', 'DOI', 'LA', 'URL',
-    'PR', 'NUM', 'ABR_SRC_TITLE', 'AFF',
-    'COUNTRY_AFILIATION',
-    'NOTE', 'CHEMICAL_CAS', 'SRC',	
-    'F_DETAILS'
+    'PR', 'JNL', 'ABR_SRC_TITLE', 'AFF',
+    'COUNTRY_AFILIATION', 'NOTE', 'CHEMICAL_CAS', 
+    'SRC', 'F_DETAILS'
     ]
 
 
@@ -67,8 +96,10 @@ def bib_to_df(file_path):
             for i in entry:
                 entry_data[i] = entry.get(i, '').upper()
                 for i in list(entry_data):
+                    # Cambiar 'AND' por ';' en la lista de autores
                     if i == 'author':
                         entry_data[i] = entry_data[i].replace(' AND ', ';')
+                    # Extraer el país de afiliación
                     elif i == 'affiliation':
                         affiliation = entry_data[i]
                         match = re.search(r',\s*([A-Z ]+)$', affiliation)
@@ -85,8 +116,15 @@ def bib_to_df(file_path):
     
     except FileNotFoundError:
         print(f"El archivo {file_path} no se encuentra.")
-
-    except Exception as e:
-        print(f"Ha ocurrido el error: {e}")
+    except UnicodeDecodeError:
+        print(f"Error de codificación al intentar leer el archivo {file_path}.")
+    except bibtexparser.BibTexParserError as e:
+        print(f"Error al analizar el archivo BibTeX: {e}")
+    except KeyError as e:
+        print(f"Clave no encontrada: {e}")
+    except ValueError as e:
+        print(f"Valor no válido: {e}")
+    except TypeError as e:
+        print(f"Error de tipo: {e}")
 
     return None
