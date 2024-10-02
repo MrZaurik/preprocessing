@@ -24,21 +24,34 @@ def bib_to_df(file_path):
         'title': 'TI',
         'author': 'AU',
         'ENTRYTYPE': 'ENTRY_TYPE',
-        'ID': 'ID',
+        'ID': 'USERS',
         'publisher': 'PU',
         'funding_text_1': 'FUNDING',
         'funding_details': 'F_DETAILS',
-        'keywords': 'KEY',
+        'keywords': 'ID',
         'art_number': 'ART NUMBER',
         'isbn': 'BN',
         'coden': 'CODEN',
-        'editor': 'PG',
+        'editor': 'PU',
         'pubmed_id': 'PMID',
         'sponsors': 'SP',
         'page_count': 'PG',
         'chemicals_cas': 'CHEMICAL_CAS'
         }
     
+    column_order = [
+    'AU', 'DE', 'ID', 'C1',
+    'CR', 'PG', 'AB', 'SN',
+    'TI', 'ART NUMBER', 'SP', 'CODEN',
+    'PU', 'FUNDING', 'ENTRY_TYPE', 'PMID',
+    'CHEMICAL_CAS', 'USERS', 'JNL', 'BN',
+    'VL', 'DOI', 'LA', 'URL',
+    'PR', 'NUM', 'ABR_SRC_TITLE', 'AFF',
+    'NOTE', 'CHEMICAL_CAS', 'SRC',	
+    'F_DETAILS'
+    ]
+
+
     try:
         with open(file_path, 'r', encoding='utf-8') as bibfile:
             bibtex_str = bibfile.read()
@@ -58,7 +71,10 @@ def bib_to_df(file_path):
 
 
         df = pd.DataFrame(entries_data)
+
         df.rename(columns=column_mapping, inplace=True)
+        df = df[column_order]
+
         return df
     
     except FileNotFoundError:
