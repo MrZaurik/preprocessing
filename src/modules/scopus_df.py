@@ -1,5 +1,6 @@
 import pandas as pd
 import bibtexparser
+import re
 
 def bib_to_df(file_path):
     column_mapping = {
@@ -47,6 +48,7 @@ def bib_to_df(file_path):
     'CHEMICAL_CAS', 'USERS', 'JNL', 'BN',
     'VL', 'DOI', 'LA', 'URL',
     'PR', 'NUM', 'ABR_SRC_TITLE', 'AFF',
+    'COUNTRY_AFILIATION',
     'NOTE', 'CHEMICAL_CAS', 'SRC',	
     'F_DETAILS'
     ]
@@ -64,9 +66,13 @@ def bib_to_df(file_path):
             entry_data = {}
             for i in entry:
                 entry_data[i] = entry.get(i, '').upper()
-                for i in entry_data:
+                for i in list(entry_data):
                     if i == 'author':
                         entry_data[i] = entry_data[i].replace(' AND ', ';')
+                    elif i == 'affiliation':
+                        affiliation = entry_data[i]
+                        match = re.search(r',\s*([A-Z ]+)$', affiliation)
+                        entry_data['COUNTRY_AFILIATION'] = match.group(1) if match else ''
             entries_data.append(entry_data)
 
 
