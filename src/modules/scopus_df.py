@@ -51,6 +51,9 @@ def bib_to_df(file_path):
             entry_data = {}
             for i in entry:
                 entry_data[i] = entry.get(i, '').upper()
+                for i in entry_data:
+                    if i == 'author':
+                        entry_data[i] = entry_data[i].replace(' AND ', ';')
             entries_data.append(entry_data)
 
 
