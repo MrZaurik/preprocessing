@@ -7,18 +7,6 @@ import os
 
 os.chdir(os.path.dirname(__file__))  # Cambia al directorio donde está el script
 
-model_path = os.path.join('models', 'random_forest_model.pkl')
-
-# Cargar el modelo entrenado guardado
-with open(model_path, 'rb') as f:
-    model = pickle.load(f)
-
-vectorizer_path = os.path.join('models', 'vectorizer.pkl')
-
-# Cargar el vectorizer guardado
-with open(vectorizer_path, 'rb') as f:
-    vectorizer = pickle.load(f)
-
 
 def scopus_refs(dataframe):
     df = dataframe.copy()
@@ -55,12 +43,19 @@ def scopus_refs(dataframe):
         cr_ref = referencia
 
         # Detectar el tipo de referencia
-        tipo = 3
+        tipo = "Unknown"
         autores, year, titulo, journal = None, None, None, None
 
         # Verificar si es Tipo 2 (Año justo después de los autores)
-        if re.search(r",\s*\(\d{4}\)", referencia):
-            tipo = 2
+        if re.search(r'^(?!.*doi\.org).*https:\/\/.*$', referencia, re.IGNORECASE):
+              tipo = 5
+        elif re.search(r",\s*\(\d{4}\)", referencia):
+            if re.search(r'proceedings of.*conference|international conference', referencia, re.IGNORECASE):
+              tipo = 4
+            elif 'PP.' not in referencia:
+              tipo = 2
+            else:
+              tipo = 3
 
             # AU (Autores) - Todo antes del año entre paréntesis
             autores = re.findall(r'^(.*?),\s*\(\d{4}\)', referencia)
@@ -76,27 +71,23 @@ def scopus_refs(dataframe):
             titulo_info = referencia.split(")", 1)[1].strip() if ")" in referencia else None
             titulo = titulo_info.split(",")[0].strip() if titulo_info else None
 
+        # Verificar si es Tipo 1 (Referencia de revista con año entre paréntesis después del título)
         else:
-            x = referencia
-            X = vectorizer.transform([x])
-            y_pred = model.predict(X)
+            tipo = 1
 
-            tipo = y_pred[0]
-
-            # AU (Autores) - Todo antes de la primera coma
+            # AU (Autores) - Todo antes del primer punto y coma
             autores = re.findall(r'^(.*?),', referencia)
             autores = autores[0].strip() if autores else None
 
             # PY (Año) - Año entre paréntesis
             year = re.findall(r"\((\d{4})\)", referencia)[0] if re.findall(r"\((\d{4})\)", referencia) else None
 
-            # TI (Título) - Entre la primera coma y el año
+            # TI (Título) - Parte después del primer autor y antes del año
             titulo = re.split(r"\(\d{4}\)", referencia)[0].split(",")[-1].strip() if re.split(r"\(\d{4}\)", referencia) else None
 
-            # JI (Institución) - Después del año
+            # JI (Journal) - Después del año
             journal_info = referencia.split(")", 1)[1].strip() if ")" in referencia else None
             journal = journal_info.split(",")[0].strip() if journal_info else None
-
 
         # SR_ref (Autor principal, PY, JI)
         autor_principal = autores.split(",")[0].strip() if autores else None  # Extraer solo el primer autor
@@ -104,21 +95,16 @@ def scopus_refs(dataframe):
 
         # Devolver los datos con el tipo de referencia incluido
         return pd.Series([sr_ref, titulo, autores, journal, year, cr_ref, tipo])
-
+        
     # Aplicar la función a la columna relevante del DataFrame
     df_nuevo = df['CR_ref'].apply(extraer_datos)
 
     # Asignar nombres a las columnas extraídas
     df_nuevo.columns = ['SR_ref', 'TI', 'AU', 'JI', 'PY', 'CR_ref', 'ref_type']
-    df_nuevo['JI'] = df_nuevo['JI'].replace(['', ' ', 'NaN', 'nan'], np.nan)
-
-    # Verifica si hay valores que pandas no ha reconocido como NaN y los convierte
-    df_nuevo['JI'] = df_nuevo['JI'].apply(lambda x: np.nan if pd.isnull(x) or str(x).strip() == '' else x)
-    #df_nuevo = df_nuevo.dropna(subset=['JI'])
 
     df_nuevo.insert(0, 'SR', df['SR'])
     # Guardar el resultado en un nuevo archivo si es necesario
-    df_nuevo.to_excel('dataframe\\datos_extraidos_con_tipos.xlsx', index=False)
+    df_nuevo.to_excel('datos_extraidos_con_tipos.xlsx', index=False)
     return df_nuevo
 
 
